@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.75"> <!-- Set zoom level to 80% -->
+    <title>My first three.js app</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"> <!-- Link Poppins font -->
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif; /* Set Poppins font */
+            overflow: hidden;
+            background-color: #fafafa;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+
+        /* Styling for the control panel */
+        .control-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            width: 250px;
+        }
+
+        .control-panel h3 {
+            margin: 0 0 10px;
+            font-size: 20px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .color-picker button {
+            width: 30px;
+            height: 30px;
+            border: none;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .text-input-container,
+        .image-input-container,
+        .category-container {
+            margin-bottom: 15px;
+        }
+
+        .text-input-container input,
+        .image-input-container input {
+            margin-right: 10px;
+            margin-top: 6px;
+            margin-bottom: 6px;
+            margin-left: -6px;
+            padding: 12px; /* Increased padding for better appearance */
+            border-radius: 5px;
+            border: 2px solid #ccc; /* Thicker border for a better look */
+            width: calc(100% - 15px);
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .text-input-container input:focus,
+        .image-input-container input:focus {
+            border-color: #007BFF; /* Change border color on focus */
+            outline: none; /* Remove default outline */
+        }
+
+        .text-input-container button,
+        .image-input-container button,
+        .category-container button {
+            padding: 10px; /* Increased padding */
+            border: none;
+            background-color: #ff4141;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            width: 100%; /* Full width buttons */
+            margin-top: 5px;
+            font-size:16px;
+        }
+
+        .text-input-container button:hover,
+        .image-input-container button:hover,
+        .category-container button:hover {
+            background-color: #ff6161; /* Darker color on hover */
+            transform: scale(1.05); /* Slightly scale button on hover */
+        }
+
+        /* Drag and Drop Area */
+        .drag-and-drop {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        /* Modal styling (for art categories/designs) */
+        #artModal,
+        #artOptions {
+            width: 400px;
+            text-align: center;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+            border-radius: 10px;
+        }
+
+        #artImages img {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100px;
+            margin: 10px;
+        }
+
+        #artImages img:hover {
+            transform: scale(1.1);
+        }
+
+        /* Button styling for the refresh button */
+        #refreshButton {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 12px; /* Increased padding */
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            width: 100%;
+        }
+
+        #refreshButton:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+            transform: scale(1.05); /* Slightly scale button on hover */
+        }
+    </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div class="control-panel">
+        <h3>Pick a colour</h3>
+        <div class="color-picker">
+            <button onclick="changeColor('#ff0000')" style="background-color: #ff0000;"></button>
+            <button onclick="changeColor('#964B00')" style="background-color: #964B00;"></button>
+            <button onclick="changeColor('#ADD8E6')" style="background-color: #ADD8E6;"></button>
+            <button onclick="changeColor('#ffff00')" style="background-color: #ffff00;"></button>
+            <button onclick="changeColor('#000000')" style="background-color: #000000;"></button>
+        </div>
+        <button onclick="resetColor()">Reset to Default (WHITE)</button>
+
+        <div class="text-input-container">
+            <input type="text" id="userText" placeholder="Enter text here">
+
+            <div>
+            <label for="textSideSelection">Choose Side: </label>
+            <select id="textSideSelection">
+                <option value="front">Front</option>
+                <option value="back">Back</option>
+            </select>
+            </div>
+            <div>
+
+            <label for="fontSelection">Choose Font:</label>
+            <select id="fontSelection">
+                <option value="Arial">Arial</option>
+                <option value="Holtwood One SC">Holtwood One SC</option>
+                <option value="Montserrat SemiBold">Montserrat SemiBold</option>
+                <option value="Montserrat Thin">Montserrat Thin</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Verdana">Verdana</option>
+            </select>
+            </div>
+
+            <button onclick="addTextToTshirt(1.8)">Add Text at Y = 1.8</button>
+            <button onclick="addTextToTshirt(2.4)">Add Text at Y = 2.4</button>
+            <button onclick="addTextToTshirt(3.8)">Add Text at Y = 3</button>
+        </div>
+
+        <div class="image-input-container">
+            <div class="drag-and-drop" id="dragAndDrop" onclick="document.getElementById('imagePicker').click()">
+                Drag and drop your image here or click to select a file.
+            </div>
+            <input type="file" id="imagePicker" accept="image/*" style="display:none;" onchange="handleFileUpload(event)">
+            <label for="sideSelection">Choose Side:</label>
+            <select id="sideSelection">
+                <option value="front">Front</option>
+                <option value="back">Back</option>
+            </select>
+            <button onclick="applyImageToModel()">Apply Image</button>
+        </div>
+
+        <div class="category-container">
+            <button onclick="showCategories()">Art</button>
+            <div id="artCategories" style="display:none;">
+                <h3>Select Category:</h3>
+                <button onclick="showDesigns('animals')">Animals</button>
+                <button onclick="showDesigns('abstract')">Abstract</button>
+                <button onclick="showDesigns('shapes')">Shapes</button>
+            </div>
+
+            <div id="artDesigns" style="display:none;">
+                <h3>Select Design:</h3>
+                <div id="designOptions"></div>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px;">
+            <button id="refreshButton" onclick="location.reload()">Refresh Page</button>
+        </div>
+    </div>
+
+    <script type="module" src="/main.js">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        camera.position.z = 5;
+
+        const animate = function () {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        };
+
+        animate();
+
+        // Functions for color, text, and image handling
+        let currentColor = 0xffffff; // Default color (white)
+        let currentText = '';
+        let currentFont = 'Arial';
+        let imageTexture;
+
+        function changeColor(color) {
+            currentColor = color;
+            cube.material.color.set(color);
+        }
+
+        function resetColor() {
+            currentColor = 0xffffff; // Reset to white
+            cube.material.color.set(currentColor);
+        }
+
+        function addTextToTshirt(yPosition) {
+            const text = document.getElementById('userText').value;
+            if (text) {
+                const loader = new THREE.FontLoader();
+                loader.load('https://threejs.org/fonts/helvetiker_regular.typeface.json', function (font) {
+                    const textGeometry = new THREE.TextGeometry(text, {
+                        font: font,
+                        size: 0.2,
+                        height: 0.05,
+                        curveSegments: 12,
+                        bevelEnabled: true,
+                        bevelThickness: 0.01,
+                        bevelSize: 0.02,
+                        bevelSegments: 5,
+                    });
+                    const textMaterial = new THREE.MeshBasicMaterial({ color: currentColor });
+                    const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                    textMesh.position.set(0, yPosition, 0);
+                    scene.add(textMesh);
+                });
+            }
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const textureLoader = new THREE.TextureLoader();
+                    imageTexture = textureLoader.load(e.target.result);
+                    applyImageToModel();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function applyImageToModel() {
+            if (imageTexture) {
+                const side = document.getElementById('sideSelection').value === 'front' ? 0 : 1;
+                const planeGeometry = new THREE.PlaneGeometry(1, 1);
+                const planeMaterial = new THREE.MeshBasicMaterial({ map: imageTexture });
+                const imageMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+                imageMesh.position.set(0, 0, side === 0 ? 0.51 : -0.51);
+                scene.add(imageMesh);
+            }
+        }
+
+        // Art category and design handling
+        function showCategories() {
+            const artCategories = document.getElementById('artCategories');
+            artCategories.style.display = artCategories.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showDesigns(category) {
+            const designs = {
+                animals: ['animal1.png', 'animal2.png', 'animal3.png'],
+                abstract: ['abstract1.png', 'abstract2.png', 'abstract3.png'],
+                shapes: ['shape1.png', 'shape2.png', 'shape3.png'],
+            };
+
+            const designOptions = document.getElementById('designOptions');
+            designOptions.innerHTML = ''; // Clear previous designs
+            designs[category].forEach(design => {
+                const img = document.createElement('img');
+                img.src = `path/to/${design}`; // Replace with actual image path
+                img.onclick = () => applyCategoryDesign(design);
+                designOptions.appendChild(img);
+            });
+
+            document.getElementById('artCategories').style.display = 'none';
+            document.getElementById('artDesigns').style.display = 'block';
+        }
+
+        function applyCategoryDesign(design) {
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load(`path/to/${design}`, (texture) => {
+                const material = new THREE.MeshBasicMaterial({ map: texture });
+                const planeGeometry = new THREE.PlaneGeometry(1, 1);
+                const designMesh = new THREE.Mesh(planeGeometry, material);
+                designMesh.position.set(0, 0, 0);
+                scene.add(designMesh);
+            });
+        }
+    </script>
+</body>
+
+</html>
